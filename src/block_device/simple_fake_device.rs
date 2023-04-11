@@ -57,39 +57,16 @@ impl SimpleFakeDevice {
 }
 
 impl BlockDevice for SimpleFakeDevice {
+    fn info(&self) -> &DeviceInfo {
+        todo!()
+    }
+
     fn write(&mut self, lba: u64, num_blocks: u64, buffer: Vec<DataBlock>) -> Result<(), String> {
-        if self.is_valid_range(lba, num_blocks) == false {
-            return Err("Invalid lba ranges".to_string());
-        }
-
-        if (buffer.len() as u64) < num_blocks {
-            return Err("Not enough buffers provided".to_string());
-        }
-
-        for offset in 0..num_blocks {
-            let current_lba = (lba + offset) as usize;
-            self.data.0[current_lba] = buffer[offset as usize];
-        }
-
-        Ok(())
+        todo!()
     }
 
     fn read(&mut self, lba: u64, num_blocks: u64) -> Result<Vec<DataBlock>, String> {
-        if self.is_valid_range(lba, num_blocks) == false {
-            return Err("Invalid lba ranges".to_string());
-        }
-
-        let mut read_data = Vec::new();
-        for offset in 0..num_blocks {
-            let current_lba = (lba + offset) as usize;
-            read_data.push(self.data.0[current_lba].clone());
-        }
-
-        Ok(read_data)
-    }
-
-    fn info(&self) -> &DeviceInfo {
-        &self.device_info
+        todo!()
     }
 
     fn load(&mut self) -> Result<(), String> {
@@ -113,19 +90,6 @@ impl BlockDevice for SimpleFakeDevice {
     }
 
     fn flush(&mut self) -> Result<(), String> {
-        let filename = self.device_info.name().clone();
-        let path = Path::new(&filename);
-
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(&path)
-            .map_err(|e| e.to_string())?;
-
-        bincode::serialize_into(&mut file, &self.data).map_err(|e| e.to_string())?;
-
-        Ok(())
+        todo!()
     }
 }
