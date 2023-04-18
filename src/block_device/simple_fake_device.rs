@@ -3,6 +3,7 @@ use crate::block_device_common::device_info::DeviceInfo;
 use super::{BlockDeviceType, BlockDevice};
 
 use serde::{Deserialize, Serialize};
+use std::io::{Read, Write};
 use std::{fs::OpenOptions, path::Path};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -31,65 +32,104 @@ impl std::fmt::Debug for SimpleFakeDevice {
 }
 
 impl SimpleFakeDevice {
-    pub fn new(name: String, size: u64) -> Result<Self, String> {
-        let device_info = DeviceInfo::new(BlockDeviceType::SimpleFakeDevice, name, size)?;
-        let num_blocks = device_info.num_blocks();
-
-        let mut device = SimpleFakeDevice {
-            device_info,
-            data: Data::new(num_blocks as usize),
-        };
-
-        if Path::new(device.device_info.name()).exists() == false {
-            device.flush()?;
+    pub fn new(name:String, size:u64) -> Result<SimpleFakeDevice, String>
+    {
+        let device_info = DeviceInfo::new(name.clone(), size);
+        if device_info.is_err()
+        {
+            return Err("Failed to create device info".to_string());
         }
-
-        Ok(device)
-    }
-
-    fn is_valid_range(&self, lba: u64, num_blocks: u64) -> bool {
-        if num_blocks == 0 || lba + num_blocks > self.device_info.num_blocks() {
-            false
-        } else {
-            true
-        }
+        let data = Data::new(size as usize);
+        Ok(SimpleFakeDevice { device_info: device_info.unwrap(), data: data })
     }
 }
 
 impl BlockDevice for SimpleFakeDevice {
     fn info(&self) -> &DeviceInfo {
-        todo!()
+        &self.device_info
     }
 
     fn write(&mut self, lba: u64, num_blocks: u64, buffer: Vec<DataBlock>) -> Result<(), String> {
-        todo!()
+        let dev_size = self.device_info.device_size();
+        if dev_size < lba || dev_size < lba + num_blocks
+        {
+            return Err("Invalid address".to_string());
+        }
+
+        if num_blocks == 0
+        {
+            return Err("Nothing to write".to_string());
+        }
+
+        for i in 0..num_blocks as usize
+        {
+            self.data.0[i + lba as usize] = buffer[i];
+        }
+        
+        Ok(())
     }
 
     fn read(&mut self, lba: u64, num_blocks: u64) -> Result<Vec<DataBlock>, String> {
-        todo!()
+        let dev_size = self.device_info.device_size();
+        if dev_size < lba || dev_size < lba + num_blocks
+        {
+            return Err("Invalid address".to_string());
+        }
+
+        if num_blocks == 0
+        {
+            return Err("Nothing to write".to_string());
+        }
+
+        let mut data = Vec::new();
+
+        for i in 0..num_blocks as usize
+        {
+            data.push(self.data.0[i + lba as usize].clone());
+        }
+        Ok(data)
     }
 
     fn load(&mut self) -> Result<(), String> {
-        let filename = self.device_info.name().clone();
-        let path = Path::new(&filename);
-
-        if !path.exists() {
-            return Err("No files to load".to_string());
+        let file = OpenOptions::new()
+            .read(true)
+            .open(self.device_info.name().to_string());
+        
+        if file.is_err()
+        {
+            return Err("File doesn't exist".to_string());
         }
 
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&path)
-            .map_err(|e| e.to_string())?;
-
-        let loaded_data = bincode::deserialize_from(&mut file).map_err(|e| e.to_string())?;
-        self.data = loaded_data;
+        let file = file.unwrap();
+        let result = bincode::deserialize_from(file);
+        if result.is_err()
+        {
+            return Err("Failed to load from file".to_string());
+        }
+        self.data = result.unwrap();
 
         Ok(())
     }
 
     fn flush(&mut self) -> Result<(), String> {
-        todo!()
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(self.device_info.name().to_string());
+        
+        if file.is_err()
+        {
+            return Err("Cannot open or create new file".to_string());
+        }
+
+        let result = bincode::serialize_into(file.unwrap(), &self.data);
+        if result.is_err()
+        {
+            return Err("Cannot flush into file".to_string());
+        }
+
+        Ok(())
+        
     }
 }
