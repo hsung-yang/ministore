@@ -1,5 +1,8 @@
-use config::{Config, File};
+use config::{Config};
 use serde::Deserialize;
+use std::fs::File;
+use std::io::Read;
+use toml::from_str;
 
 #[derive(Debug, Deserialize)]
 pub struct MinistoreConfig {
@@ -37,7 +40,38 @@ impl std::fmt::Display for RunMode {
 }
 
 pub fn get_config(run_mode: &RunMode) -> Result<MinistoreConfig, String> {
-    todo!()
+    let config:MinistoreConfig;
+
+    let mut file = File::open("config/default.toml").expect("Failed to open config file");
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).expect("Failed to read config file");
+    let default_config = from_str::<MinistoreConfig>(&contents).expect("Failed to deserialize");
+
+    if run_mode == &RunMode::Development
+    {
+        let mut file = File::open("config/development.toml").expect("Failed to open config file");
+
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).expect("Failed to read config file");
+
+        config = from_str::<MinistoreConfig>(&contents).expect("Failed to deserialize");
+        return Ok(config);
+    }
+    else if run_mode == &RunMode::Production
+    {
+        let mut file = File::open("config/production.toml").expect("Failed to open config file");
+
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).expect("Failed to read config file");
+
+        config = from_str::<MinistoreConfig>(&contents).expect("Failed to deserialize");
+        return Ok(config);
+    }
+    else 
+    {
+        return Err("Failed to get config".to_string());
+    }
 }
 
 #[cfg(test)]

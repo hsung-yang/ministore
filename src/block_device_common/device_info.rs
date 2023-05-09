@@ -2,7 +2,12 @@ use super::data_type::BLOCK_SIZE;
 use super::BlockDeviceType;
 
 #[derive(Clone, Debug)]
-pub struct DeviceInfo {}
+pub struct DeviceInfo {
+    device_type : BlockDeviceType,
+    device_name : String,
+    device_size : u64,
+    num_blocks: u64,
+}
 
 impl DeviceInfo {
     pub fn new(
@@ -10,23 +15,28 @@ impl DeviceInfo {
         device_name: String,
         device_size: u64,
     ) -> Result<Self, String> {
-        todo!()
+        Ok(Self {
+            device_type,
+            device_name,
+            device_size,
+            num_blocks: device_size / (BLOCK_SIZE as u64),
+        })
     }
 
     pub fn name(&self) -> &String {
-        todo!()
+        &self.device_name
     }
 
     pub fn device_size(&self) -> u64 {
-        todo!()
+        self.device_size
     }
 
     pub fn num_blocks(&self) -> u64 {
-        todo!()
+        self.num_blocks
     }
 
     pub fn device_type(&self) -> BlockDeviceType {
-        todo!()
+        self.device_type.clone()
     }
 }
 
