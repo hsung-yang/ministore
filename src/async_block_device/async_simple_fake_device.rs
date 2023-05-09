@@ -7,8 +7,7 @@ use crate::block_device_common::{
 };
 use tokio::{fs, io::AsyncWriteExt};
 
-pub struct AsyncSimpleFakeDevice {
-}
+pub struct AsyncSimpleFakeDevice {}
 
 impl AsyncSimpleFakeDevice {
     pub async fn new(

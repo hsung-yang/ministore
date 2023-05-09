@@ -2,8 +2,7 @@ use super::data_type::BLOCK_SIZE;
 use super::BlockDeviceType;
 
 #[derive(Clone, Debug)]
-pub struct DeviceInfo {
-}
+pub struct DeviceInfo {}
 
 impl DeviceInfo {
     pub fn new(
