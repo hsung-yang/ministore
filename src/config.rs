@@ -1,8 +1,5 @@
-use config::{Config};
+use config::{Config, File};
 use serde::Deserialize;
-use std::fs::File;
-use std::io::Read;
-use toml::from_str;
 
 #[derive(Debug, Deserialize)]
 pub struct MinistoreConfig {
@@ -40,38 +37,21 @@ impl std::fmt::Display for RunMode {
 }
 
 pub fn get_config(run_mode: &RunMode) -> Result<MinistoreConfig, String> {
-    let config:MinistoreConfig;
+    let config = Config::builder()
+    .add_source(File::with_name("config/default.toml"))
+    .add_source(File::with_name(&format!("config/{}.toml", run_mode)))
+    .build()
+    .map_err(|e| e.to_string())?;
 
-    let mut file = File::open("config/default.toml").expect("Failed to open config file");
+    let config: MinistoreConfig = config.try_deserialize().map_err(|e| e.to_string())?;
 
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Failed to read config file");
-    let default_config = from_str::<MinistoreConfig>(&contents).expect("Failed to deserialize");
-
-    if run_mode == &RunMode::Development
+    if config.devices.use_fake == true
+        && config.devices.list.len() != config.devices.device_size.len()
     {
-        let mut file = File::open("config/development.toml").expect("Failed to open config file");
-
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).expect("Failed to read config file");
-
-        config = from_str::<MinistoreConfig>(&contents).expect("Failed to deserialize");
-        return Ok(config);
+        return Err("All fake device size should be provided".to_string());
     }
-    else if run_mode == &RunMode::Production
-    {
-        let mut file = File::open("config/production.toml").expect("Failed to open config file");
 
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).expect("Failed to read config file");
-
-        config = from_str::<MinistoreConfig>(&contents).expect("Failed to deserialize");
-        return Ok(config);
-    }
-    else 
-    {
-        return Err("Failed to get config".to_string());
-    }
+    Ok(config)
 }
 
 #[cfg(test)]
